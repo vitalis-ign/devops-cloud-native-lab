@@ -1,0 +1,36 @@
+name: Deploy App
+
+on:
+  push:
+    branches: [ "main" ]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Docker login
+      run: echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USER }}" --password-stdin
+
+    - name: Build Docker image
+      run: |
+        docker build -t ${{ secrets.DOCKER_USER }}/vitalis-nginx:latest ./app
+
+    - name: Push Docker image
+      run: |
+        docker push ${{ secrets.DOCKER_USER }}/vitalis-nginx:latest
+
+    - name: Setup Terraform
+      uses: hashicorp/setup-terraform@v2
+
+    - name: Terraform Init
+      run: terraform init
+      working-directory: ./infra
+
+    - name: Terraform Apply
+      run: terraform apply -auto-approve
+      working-directory: ./infra
+
